@@ -12,52 +12,165 @@ permissions:
 
 jobs:
   build-apk:
-    name: Build Android APK
+    name: Build S2B Hayagriva APK
     runs-on: ubuntu-latest
 
     steps:
+
+      # --------------------------------------------------
+      # 1. Download repository
+      # --------------------------------------------------
       - name: Checkout repository
         uses: actions/checkout@v4
 
+
+      # --------------------------------------------------
+      # 2. Java 17
+      # --------------------------------------------------
       - name: Set up JDK 17
         uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: "17"
 
+
+      # --------------------------------------------------
+      # 3. Android SDK
+      # --------------------------------------------------
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Install Android SDK packages
+
+      # --------------------------------------------------
+      # 4. Install Android SDK components
+      # --------------------------------------------------
+      - name: Install Android SDK
         run: |
           sdkmanager "platform-tools"
           sdkmanager "platforms;android-35"
           sdkmanager "build-tools;35.0.0"
+
           yes | sdkmanager --licenses || true
 
-      - name: Set up Gradle
+
+      # --------------------------------------------------
+      # 5. Install Gradle
+      # --------------------------------------------------
+      - name: Set up Gradle 8.9
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: "8.9"
 
-      - name: Show Gradle tasks
-        run: |
-          gradle tasks --all
 
-      - name: Build APK
+      # --------------------------------------------------
+      # 6. Verify Android project
+      # --------------------------------------------------
+      - name: Verify project structure
         run: |
+          echo "======================================"
+          echo "S2B HAYAGRIVA PROJECT"
+          echo "======================================"
+
+          echo ""
+          echo "Root files:"
+          find . -maxdepth 2 -type f | sort
+
+          echo ""
+          echo "Checking required files..."
+
+          test -f settings.gradle
+          test -f build.gradle
+          test -f app/build.gradle
+          test -f app/src/main/AndroidManifest.xml
+          test -f app/src/main/java/com/s2b/hayagriva/MainActivity.kt
+          test -f app/src/main/res/values/themes.xml
+
+          echo ""
+          echo "All required files found."
+
+
+      # --------------------------------------------------
+      # 7. Show Gradle projects
+      # --------------------------------------------------
+      - name: Verify Gradle modules
+        run: |
+          echo "======================================"
+          echo "GRADLE PROJECTS"
+          echo "======================================"
+
+          gradle --no-daemon projects
+
+
+      # --------------------------------------------------
+      # 8. Show available Android tasks
+      # --------------------------------------------------
+      - name: Verify Android build tasks
+        run: |
+          echo "======================================"
+          echo "ANDROID BUILD TASKS"
+          echo "======================================"
+
+          gradle --no-daemon :app:tasks --all
+
+
+      # --------------------------------------------------
+      # 9. Build Debug APK
+      # --------------------------------------------------
+      - name: Build Debug APK
+        run: |
+          echo "======================================"
+          echo "BUILDING S2B HAYAGRIVA APK"
+          echo "======================================"
+
           gradle --no-daemon :app:assembleDebug
 
-      - name: Check APK
-        run: |
-          echo "Checking APK output..."
-          ls -lh app/build/outputs/apk/debug/
-          test -f app/build/outputs/apk/debug/app-debug.apk
-          echo "APK successfully created!"
 
-      - name: Upload APK
+      # --------------------------------------------------
+      # 10. Find generated APK
+      # --------------------------------------------------
+      - name: Locate APK
+        run: |
+          echo "======================================"
+          echo "GENERATED APK FILES"
+          echo "======================================"
+
+          find . -type f -name "*.apk" -print
+
+
+      # --------------------------------------------------
+      # 11. Verify APK
+      # --------------------------------------------------
+      - name: Verify APK
+        run: |
+          echo "Checking APK..."
+
+          test -f app/build/outputs/apk/debug/app-debug.apk
+
+          echo ""
+          echo "======================================"
+          echo "APK BUILD SUCCESSFUL"
+          echo "======================================"
+
+          ls -lh app/build/outputs/apk/debug/app-debug.apk
+
+
+      # --------------------------------------------------
+      # 12. Rename APK
+      # --------------------------------------------------
+      - name: Rename APK
+        run: |
+          cp \
+            app/build/outputs/apk/debug/app-debug.apk \
+            app/build/outputs/apk/debug/S2B-Hayagriva-debug.apk
+
+
+      # --------------------------------------------------
+      # 13. Upload APK
+      # --------------------------------------------------
+      - name: Upload S2B Hayagriva APK
         uses: actions/upload-artifact@v4
         with:
           name: S2B-Hayagriva-debug-APK
-          path: app/build/outputs/apk/debug/app-debug.apk
+          path: app/build/outputs/apk/debug/S2B-Hayagriva-debug.apk
+          if-no-files-found: error
           retention-days: 30

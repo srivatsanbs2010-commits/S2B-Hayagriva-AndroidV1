@@ -1,0 +1,80 @@
+name: Build S2B Hayagriva APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - master
+
+permissions:
+  contents: read
+
+jobs:
+  build-apk:
+    name: Build Android APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android SDK components
+        run: |
+          sdkmanager "platform-tools"
+          sdkmanager "platforms;android-35"
+          sdkmanager "build-tools;35.0.0"
+          yes | sdkmanager --licenses || true
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.9"
+
+      - name: Check Android project
+        run: |
+          echo "Project files:"
+          find . -maxdepth 3 -type f | sort
+          echo ""
+          echo "Android app module:"
+          test -f app/build.gradle.kts
+          test -f app/src/main/AndroidManifest.xml
+          echo "Android project structure OK"
+
+      - name: Show available Gradle tasks
+        run: |
+          gradle --no-daemon tasks --all
+
+      - name: Build Debug APK
+        run: |
+          gradle --no-daemon :app:assembleDebug
+
+      - name: Verify APK
+        run: |
+          echo "Generated APK files:"
+          find app/build/outputs -type f -name "*.apk" -print
+          test -f app/build/outputs/apk/debug/app-debug.apk
+          echo "APK successfully generated:"
+          ls -lh app/build/outputs/apk/debug/app-debug.apk
+
+      - name: Rename APK
+        run: |
+          cp app/build/outputs/apk/debug/app-debug.apk \
+             app/build/outputs/apk/debug/S2B-Hayagriva-debug.apk
+
+      - name: Upload installable APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: S2B-Hayagriva-APK
+          path: app/build/outputs/apk/debug/S2B-Hayagriva-debug.apk
+          if-no-files-found: error
+          retention-days: 30

@@ -1,38 +1,14 @@
-package com.s2b.hayagriva.viewmodel
+package com.s2b.hayagriva
 
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 
 class HayagrivaViewModel : ViewModel() {
-    var input: String = ""
-        private set
-    var state: String = "READY"
-    var listening: Boolean = false
-        private set
+    private val _status = MutableStateFlow("Ready")
+    val status: StateFlow<String> = _status
 
-    val greeting: String
-        get() = "Hello. I’m Hayagriva. How can I help?"
-
-    fun setInput(value: String) { input = value }
-
-    fun send() {
-        if (input.isBlank()) return
-        state = "THINKING"
-        viewModelScope.launch {
-            delay(500)
-            state = "READY"
-        }
-    }
-
-    fun quick(command: String) {
-        input = command
-        send()
-    }
-
-    fun toggleListening() {
-        listening = !listening
-        state = if (listening) "LISTENING" else "READY"
+    fun setStatus(value: String) {
+        _status.value = value
     }
 }
